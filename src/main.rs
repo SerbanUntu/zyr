@@ -5,6 +5,7 @@ mod domain;
 use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
+use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
 use cli::Commands;
 use cli::timer::TimerCommands;
 use cli::Cli;
@@ -82,6 +83,90 @@ fn main() {
                 }
             }
         },
+        Commands::Plan { command: _ } => {
+        },
+        Commands::View => {
+            let now_dt = Local::now();
+
+            fn same_day(a: DateTime<Local>, b: DateTime<Local>) -> bool {
+                a.year() == b.year() && a.month() == b.month() && a.day() == b.day()
+            }
+
+            fn convert(millis: u64) -> DateTime<Local> {
+                let utc = Utc.timestamp_millis_opt(millis as i64)
+                    .single()
+                    .expect("invalid timestamp");
+                utc.with_timezone(&Local)
+            }
+
+            fn millis_since_midnight(dt: DateTime<Local>) -> u64 {
+                (dt.hour() * 3_600_000 + dt.minute() * 60_000 + dt.second() * 1_000) as u64
+            }
+
+            fn prettify_duration(d: Duration) -> String {
+                let mut result = String::from("");
+
+                let total_seconds = d.as_secs() as u32;
+                let hours = total_seconds / 60 / 60;
+                let minutes = (total_seconds - hours * 3600) / 60;
+                let seconds = total_seconds % 60;
+
+                if hours > 0 {
+                    result.push_str(&format!("{}h", hours));
+                }
+                if hours > 0 || minutes > 0 {
+                    result.push_str(&format!("{}m", minutes));
+                }
+                result.push_str(&format!("{}s", seconds));
+
+                result
+            }
+
+            let filtered: Vec<(Duration, &str)> = data.blocks
+                .iter()
+                .filter(|b| { 
+                    same_day(now_dt, convert(b.start_unix)) || 
+                    (b.end_unix.is_some() && same_day(now_dt, convert(b.end_unix.unwrap()))) ||
+                    b.end_unix.is_none()
+                })
+                .map(|b| {
+                    let millis;
+                    let start_dt = convert(b.start_unix);
+                    let mut end_dt = now_dt;
+
+                    if let Some(end) = b.end_unix {
+                        end_dt = convert(end);
+                        if end_dt > now_dt {
+                            end_dt = now_dt;
+                        }
+                    }
+
+                    if !same_day(now_dt, start_dt) {
+                        millis = millis_since_midnight(end_dt);
+                    } else {
+                        millis = (end_dt - start_dt).num_milliseconds() as u64;
+                    }
+
+                    (Duration::from_millis(millis), &b.category[..])
+                })
+                .collect();
+
+            let time_worked: Duration = filtered
+                .iter()
+                .filter(|t| t.1 != "break")
+                .fold(Duration::from_millis(0), |t, c| t + c.0);
+
+            let time_break: Duration = filtered
+                .iter()
+                .filter(|t| t.1 == "break")
+                .fold(Duration::from_millis(0), |t, c| t + c.0);
+
+            println!("Overview:\n\nTime worked: {}\nBreak time: {}\nTotal: {}",
+                prettify_duration(time_worked),
+                prettify_duration(time_break),
+                prettify_duration(time_worked + time_break)
+            );
+        }
         Commands::Clear => {
             println!("Are you sure you want to clear all data? (y/N)");
             let mut buf = String::new();

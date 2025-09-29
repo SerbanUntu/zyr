@@ -1,8 +1,10 @@
 pub mod clear;
 pub mod timer;
+pub mod plan;
 
 use clap::{Parser, Subcommand};
 use timer::TimerCommands;
+use plan::PlanCommands;
 
 #[derive(Parser)]
 #[command(name = "zyr")]
@@ -19,5 +21,10 @@ pub enum Commands {
         #[command(subcommand)]
         command: TimerCommands,
     },
-    Clear
+    Plan {
+        #[command(subcommand)]
+        command: PlanCommands,
+    },
+    Clear,
+    View,
 }
