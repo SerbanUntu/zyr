@@ -2,6 +2,7 @@ mod cli;
 mod utils;
 mod domain;
 
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
@@ -122,7 +123,7 @@ fn main() {
                 result
             }
 
-            let filtered: Vec<(Duration, &str)> = data.blocks
+            let mut filtered: Vec<(Duration, &str)> = data.blocks
                 .iter()
                 .filter(|b| { 
                     same_day(now_dt, convert(b.start_unix)) || 
@@ -149,7 +150,16 @@ fn main() {
 
                     (Duration::from_millis(millis), &b.category[..])
                 })
-                .collect();
+                .fold(HashMap::new(), |mut acc, (d, category)| {
+                    acc.entry(category)
+                        .and_modify(|existing| *existing += d)
+                        .or_insert(d);
+                    acc
+                })
+                .into_iter()
+                .map(|(s, d)| (d, s))
+                .collect::<Vec<(Duration, &str)>>();
+            filtered.sort_by(|a, b| b.cmp(a));
 
             let time_worked: Duration = filtered
                 .iter()
@@ -161,11 +171,19 @@ fn main() {
                 .filter(|t| t.1 == "break")
                 .fold(Duration::from_millis(0), |t, c| t + c.0);
 
-            println!("Overview:\n\nTime worked: {}\nBreak time: {}\nTotal: {}",
+            let breakdown: String = filtered
+                .iter()
+                .map(|(d, c)| format!("{}: {}", c, prettify_duration(*d)))
+                .collect::<Vec<String>>()
+                .join("\n");
+
+            println!("Overview:\n\nTime worked: {}\nBreak time: {}\nTotal: {}\n",
                 prettify_duration(time_worked),
                 prettify_duration(time_break),
                 prettify_duration(time_worked + time_break)
             );
+
+            println!("Breakdown by category:\n\n{}", breakdown);
         }
         Commands::Clear => {
             println!("Are you sure you want to clear all data? (y/N)");
