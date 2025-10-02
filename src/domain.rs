@@ -3,24 +3,26 @@ use std::fmt;
 use std::io::Write;
 use serde::{Serialize, Deserialize};
 use std::time::Duration;
-use crate::utils::since_unix;
+use crate::utils::time_utils;
+
+type Timestamp = u64;
 
 #[derive(Debug)]
 pub struct Timer {
-    pub start_unix: u64,
-    pub end_unix: Option<u64>,
+    pub start_unix: Timestamp,
+    pub end_unix: Option<Timestamp>,
 }
 
 impl Timer {
     pub fn new() -> Self {
         Self {
-            start_unix: since_unix().as_millis() as u64,
+            start_unix: time_utils::since_unix().as_millis() as u64,
             end_unix: None
         }
     }
 
     pub fn with_duration(duration: Duration) -> Self {
-        let now: u64 = since_unix().as_millis() as u64;
+        let now: u64 = time_utils::since_unix().as_millis() as u64;
         Self {
             start_unix: now,
             end_unix: Some(now + duration.as_millis() as u64)
@@ -44,7 +46,7 @@ impl Timer {
     }
 
     pub fn end(&mut self) {
-        self.end_unix = Some(since_unix().as_millis() as u64);
+        self.end_unix = Some(time_utils::since_unix().as_millis() as u64);
     }
 
     pub fn get_hours_minutes_seconds(&self) -> (u32, u32, u32) {
@@ -52,11 +54,11 @@ impl Timer {
 
         if let Some(end) = self.end_unix {
             // Time remaining
-            to_display = since_unix().abs_diff(Duration::from_millis(end));
+            to_display = time_utils::since_unix().abs_diff(Duration::from_millis(end));
             
         } else {
             // Time since start
-            to_display = since_unix().abs_diff(Duration::from_millis(self.start_unix));
+            to_display = time_utils::since_unix().abs_diff(Duration::from_millis(self.start_unix));
         }
 
         let total_seconds = to_display.as_secs() as u32;
@@ -119,7 +121,7 @@ impl Data {
             .iter()
             .filter(|b| { 
                 if let Some(end) = b.end_unix {
-                    let now = since_unix().as_millis() as u64;
+                    let now = time_utils::since_unix().as_millis() as u64;
                     end > now
                 }
                 else { true }
@@ -127,4 +129,8 @@ impl Data {
             .map(|b| { Timer { start_unix: b.start_unix, end_unix: b.end_unix } })
             .next()
     }
+}
+
+pub trait Executable {
+    fn execute(&self, data: &mut Data);
 }

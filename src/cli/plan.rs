@@ -1,7 +1,7 @@
 use std::time::Duration;
 use chrono::{DateTime, Local};
 use clap::Subcommand;
-use crate::utils::parsers;
+use crate::{domain::{Executable, Data}, utils::parsers};
 
 #[derive(Subcommand, PartialEq)]
 pub enum PlanCommands {
@@ -27,3 +27,12 @@ pub enum PlanCommands {
     },
 }
 
+impl Executable for PlanCommands {
+    fn execute(&self, _: &mut Data) {
+        match self {
+            PlanCommands::Add { .. } => todo!(),
+            PlanCommands::Edit { .. } => todo!(),
+            PlanCommands::Del { .. } => todo!(),
+        }
+    }
+}

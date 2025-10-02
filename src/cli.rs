@@ -1,8 +1,10 @@
 pub mod clear;
 pub mod timer;
 pub mod plan;
+pub mod view;
 
 use clap::{Parser, Subcommand};
+use crate::domain::{Executable, Data};
 use timer::TimerCommands;
 use plan::PlanCommands;
 
@@ -27,4 +29,15 @@ pub enum Commands {
     },
     Clear,
     View,
+}
+
+impl Executable for Commands {
+    fn execute(&self, data: &mut Data) {
+        match self {
+            Commands::Timer { command } => command.execute(data),
+            Commands::Plan { command } => command.execute(data),
+            Commands::Clear => clear::exec(data),
+            Commands::View => view::exec(data),
+        }
+    }
 }

@@ -1,5 +1,3 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 pub mod parsers {
 
     use std::time::Duration;
@@ -33,7 +31,48 @@ pub mod parsers {
     }
 }
 
-pub fn since_unix() -> Duration {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+pub mod time_utils {
+
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use chrono::{Local, Timelike, Datelike, TimeZone, Utc, DateTime};
+
+    pub fn since_unix() -> Duration {
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+    }
+
+    pub fn same_day(a: DateTime<Local>, b: DateTime<Local>) -> bool {
+        a.year() == b.year() && a.month() == b.month() && a.day() == b.day()
+    }
+
+    pub fn convert(millis: u64) -> DateTime<Local> {
+        let utc = Utc.timestamp_millis_opt(millis as i64)
+            .single()
+            .expect("invalid timestamp");
+        utc.with_timezone(&Local)
+    }
+
+    pub fn millis_since_midnight(dt: DateTime<Local>) -> u64 {
+        (dt.hour() * 3_600_000 + dt.minute() * 60_000 + dt.second() * 1_000) as u64
+    }
+
+    pub fn prettify_duration(d: Duration) -> String {
+        let mut result = String::from("");
+
+        let total_seconds = d.as_secs() as u32;
+        let hours = total_seconds / 60 / 60;
+        let minutes = (total_seconds - hours * 3600) / 60;
+        let seconds = total_seconds % 60;
+
+        if hours > 0 {
+            result.push_str(&format!("{}h", hours));
+        }
+        if hours > 0 || minutes > 0 {
+            result.push_str(&format!("{}m", minutes));
+        }
+        result.push_str(&format!("{}s", seconds));
+
+        result
+    }
+
 }
 
