@@ -1,7 +1,7 @@
 use std::time::Duration;
 use std::io::{self, Write};
 use std::thread;
-use clap::Subcommand;
+use clap::{ArgAction, Subcommand};
 use crate::{domain::{Executable, Timer, Data}, utils::parsers};
 
 #[derive(Subcommand, PartialEq)]
@@ -11,6 +11,9 @@ pub enum TimerCommands {
 
         #[arg(short, long, value_parser = parsers::parse_duration)]
         duration: Option<Duration>,
+
+        #[arg(short, long, action = ArgAction::SetTrue)]
+        show: bool,
     },
     Add { 
         #[arg(value_parser = parsers::parse_duration)]
@@ -27,8 +30,8 @@ pub enum TimerCommands {
 impl Executable for TimerCommands {
     fn execute(&self, data: &mut Data) {
         match self {
-            Self::Start { category, duration } => {
-                Self::exec_start(category, *duration, data);
+            Self::Start { category, duration, show } => {
+                Self::exec_start(category, *duration, *show, data);
             },
             Self::Add { duration } => {
                 Self::exec_add(*duration, data);
@@ -47,7 +50,7 @@ impl Executable for TimerCommands {
 }
 
 impl TimerCommands {
-    fn exec_start(category: &str, duration: Option<Duration>, data: &mut Data) {
+    fn exec_start(category: &str, duration: Option<Duration>, show: bool, data: &mut Data) {
         if data.get_running_timer().is_some() {
             panic!("Timer already started!")
         }
@@ -62,6 +65,11 @@ impl TimerCommands {
         }
 
         data.blocks.push(timer.to_block(&category));
+        data.save("data.json"); //TODO: Move saving logic
+
+        if show {
+            Self::exec_show(data);
+        }
     }
 
     fn exec_add(duration: Duration, data: &mut Data) {
@@ -98,6 +106,7 @@ impl TimerCommands {
             let category = data.blocks[data.blocks.len() - 1].category.clone();
             data.blocks.pop();
             data.blocks.push(timer.to_block(&category));
+            println!("Timer stopped successfully");
         } else {
             println!("No timer to end");
         }
