@@ -10,7 +10,7 @@ pub mod parsers {
         for c in s.chars() {
             if c.is_ascii_digit() {
                 num.push(c);
-            } else {
+            } else if !c.is_whitespace() {
                 let value: u64 = num.parse().map_err(|_| format!("Invalid number in {s}"))?;
                 num.clear();
 
@@ -73,6 +73,79 @@ pub mod time_utils {
 
         result
     }
+}
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_duration_only_hour() {
+        let result = parsers::parse_duration("4h");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 4 * 3600);
+    }
+
+    #[test]
+    fn test_parse_duration_only_minutes() {
+        let result = parsers::parse_duration("34m");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 34 * 60);
+    }
+
+    #[test]
+    fn test_parse_duration_only_seconds() {
+        let result = parsers::parse_duration("14s");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 14);
+    }
+
+    #[test]
+    fn test_parse_duration_combined_units() {
+        let result = parsers::parse_duration("7h49m5s");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 7 * 3600 + 49 * 60 + 5);
+    }
+
+    #[test]
+    fn test_parse_duration_zeros() {
+        let result = parsers::parse_duration("0h0m0s");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 0);
+    }
+
+    #[test]
+    fn test_parse_duration_random_order() {
+        let result = parsers::parse_duration("3m5s3h");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 3 * 3600 + 3 * 60 + 5);
+    }
+
+    #[test]
+    fn test_parse_duration_whitespace() {
+        let result = parsers::parse_duration(" 8h 5s  ");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 8 * 3600 + 5);
+    }
+
+    #[test]
+    fn test_parse_duration_above_23_or_59() {
+        let result = parsers::parse_duration("161h345m287s");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 161 * 3600 + 345 * 60 + 287);
+    }
+
+    #[test]
+    fn test_parse_duration_empty() {
+        let result = parsers::parse_duration("");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().as_secs(), 0);
+    }
+
+    #[test]
+    fn test_parse_duration_unknown_time_quantity() {
+        let result = parsers::parse_duration("73q");
+        assert!(result.is_err());
+    }
 }
 
