@@ -1,12 +1,13 @@
 pub mod clear;
-pub mod timer;
 pub mod plan;
+pub mod timer;
 pub mod view;
 
+use crate::domain::{Data, Executable};
 use clap::{Parser, Subcommand};
-use crate::domain::{Executable, Data};
-use timer::TimerCommands;
 use plan::PlanCommands;
+use std::error::Error;
+use timer::TimerCommands;
 
 #[derive(Parser)]
 #[command(name = "zyr")]
@@ -32,12 +33,13 @@ pub enum Commands {
 }
 
 impl Executable for Commands {
-    fn execute(&self, data: &mut Data) {
+    fn execute(&self, data: &mut Data) -> Result<(), Box<dyn Error>> {
         match self {
-            Commands::Timer { command } => command.execute(data),
-            Commands::Plan { command } => command.execute(data),
+            Commands::Timer { command } => command.execute(data)?,
+            Commands::Plan { command } => command.execute(data)?,
             Commands::Clear => clear::exec(data),
             Commands::View => view::exec(data),
         }
+        Ok(())
     }
 }

@@ -1,13 +1,17 @@
-use std::time::Duration;
+use crate::{
+    domain::{Data, Executable, Timer},
+    utils::parsers,
+};
+use clap::{ArgAction, Subcommand};
+use std::error::Error;
 use std::io::{self, Write};
 use std::thread;
-use clap::{ArgAction, Subcommand};
-use crate::{domain::{Executable, Timer, Data}, utils::parsers};
+use std::time::Duration;
 
 #[derive(Subcommand, PartialEq)]
 pub enum TimerCommands {
-    Start { 
-        category: String, 
+    Start {
+        category: String,
 
         #[arg(short, long, value_parser = parsers::parse_duration)]
         duration: Option<Duration>,
@@ -15,30 +19,28 @@ pub enum TimerCommands {
         #[arg(short, long, action = ArgAction::SetTrue)]
         show: bool,
     },
-    Add { 
+    Add {
         #[arg(value_parser = parsers::parse_duration)]
-        duration: Duration, 
+        duration: Duration,
     },
-    Sub { 
+    Sub {
         #[arg(value_parser = parsers::parse_duration)]
-        duration: Duration, 
+        duration: Duration,
     },
     End,
     Show,
 }
 
 impl Executable for TimerCommands {
-    fn execute(&self, data: &mut Data) {
+    fn execute(&self, data: &mut Data) -> Result<(), Box<dyn Error>> {
         match self {
-            Self::Start { category, duration, show } => {
-                Self::exec_start(category, *duration, *show, data);
-            },
-            Self::Add { duration } => {
-                Self::exec_add(*duration, data);
-            }
-            Self::Sub { duration } => {
-                Self::exec_sub(*duration, data);
-            }
+            Self::Start {
+                category,
+                duration,
+                show,
+            } => Self::exec_start(category, *duration, *show, data)?,
+            Self::Add { duration } => Self::exec_add(*duration, data)?,
+            Self::Sub { duration } => Self::exec_sub(*duration, data)?,
             Self::End => {
                 Self::exec_end(data);
             }
@@ -46,17 +48,22 @@ impl Executable for TimerCommands {
                 Self::exec_show(data);
             }
         }
+        Ok(())
     }
 }
 
 impl TimerCommands {
-    fn exec_start(category: &str, duration: Option<Duration>, show: bool, data: &mut Data) {
+    fn exec_start(
+        category: &str,
+        duration: Option<Duration>,
+        show: bool,
+        data: &mut Data,
+    ) -> Result<(), Box<dyn Error>> {
         if data.get_running_timer().is_some() {
-            panic!("Timer already started!")
+            return Err("Timer already started!".into());
         }
 
         let timer: Timer;
-
 
         if let Some(d) = duration {
             timer = Timer::with_duration(d);
@@ -70,12 +77,13 @@ impl TimerCommands {
         if show {
             Self::exec_show(data);
         }
+        Ok(())
     }
 
-    fn exec_add(duration: Duration, data: &mut Data) {
+    fn exec_add(duration: Duration, data: &mut Data) -> Result<(), Box<dyn Error>> {
         if let Some(mut timer) = data.get_running_timer() {
             if timer.end_unix.is_none() {
-                panic!("Timer does not have a set end time");
+                return Err("Timer does not have a set end time".into());
             }
             timer.add(duration);
             let category = data.blocks[data.blocks.len() - 1].category.clone();
@@ -84,12 +92,13 @@ impl TimerCommands {
         } else {
             println!("No timer is running");
         }
+        Ok(())
     }
 
-    fn exec_sub(duration: Duration, data: &mut Data) {
+    fn exec_sub(duration: Duration, data: &mut Data) -> Result<(), Box<dyn Error>> {
         if let Some(mut timer) = data.get_running_timer() {
             if timer.end_unix.is_none() {
-                panic!("Timer does not have a set end time");
+                return Err("Timer does not have a set end time".into());
             }
             timer.sub(duration);
             let category = data.blocks[data.blocks.len() - 1].category.clone();
@@ -98,8 +107,9 @@ impl TimerCommands {
         } else {
             println!("No timer is running");
         }
+        Ok(())
     }
-    
+
     fn exec_end(data: &mut Data) {
         if let Some(mut timer) = data.get_running_timer() {
             timer.end();

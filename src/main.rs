@@ -1,21 +1,26 @@
 mod cli;
-mod utils;
 mod domain;
+mod utils;
 
-use cli::Cli;
-use domain::{Data};
 use clap::Parser;
+use cli::Cli;
+use domain::Data;
 use domain::Executable;
 
 fn main() {
     let cli = Cli::parse();
     let mut data = Data::from_file("data.json");
 
-    cli.command.execute(&mut data);
+    let result = cli.command.execute(&mut data);
+    match result {
+        Err(e) => {
+            eprintln!("Execution failed. {}", e)
+        }
+        _ => (),
+    }
 
     data.save("data.json");
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}

@@ -1,5 +1,6 @@
 pub mod parsers {
 
+    use chrono::{DateTime, Local};
     use std::time::Duration;
 
     /// Parse a duration string like "1h35m50s" into `Duration`
@@ -24,17 +25,25 @@ pub mod parsers {
         }
 
         if !num.is_empty() {
-            return Err(format!("Trailing number without unit in {s}"));
+            return Err(format!("Trailing number without unit in {s}").into());
         }
 
         Ok(Duration::from_secs(secs))
+    }
+
+    pub fn parse_timestamp(s: &str) -> Result<DateTime<Local>, String> {
+        let humantime_result = humantime::parse_rfc3339_weak(s);
+        match humantime_result {
+            Ok(st) => Ok(st.into()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }
 
 pub mod time_utils {
 
+    use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
-    use chrono::{Local, Timelike, Datelike, TimeZone, Utc, DateTime};
 
     pub fn since_unix() -> Duration {
         SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
@@ -45,7 +54,8 @@ pub mod time_utils {
     }
 
     pub fn convert(millis: u64) -> DateTime<Local> {
-        let utc = Utc.timestamp_millis_opt(millis as i64)
+        let utc = Utc
+            .timestamp_millis_opt(millis as i64)
             .single()
             .expect("invalid timestamp");
         utc.with_timezone(&Local)
@@ -148,4 +158,3 @@ mod tests {
         assert!(result.is_err());
     }
 }
-

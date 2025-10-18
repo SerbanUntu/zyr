@@ -1,18 +1,20 @@
-use std::time::{Duration};
-use std::collections::HashMap;
-use chrono::Local;
 use crate::domain::Data;
 use crate::utils::time_utils;
+use chrono::Local;
+use std::collections::HashMap;
+use std::time::Duration;
 
 pub fn exec(data: &Data) {
     let now_dt = Local::now();
 
-    let mut filtered: Vec<(Duration, &str)> = data.blocks
+    let mut filtered: Vec<(Duration, &str)> = data
+        .blocks
         .iter()
-        .filter(|b| { 
-            time_utils::same_day(now_dt, time_utils::convert(b.start_unix)) || 
-            (b.end_unix.is_some() && time_utils::same_day(now_dt, time_utils::convert(b.end_unix.unwrap()))) ||
-            b.end_unix.is_none()
+        .filter(|b| {
+            time_utils::same_day(now_dt, time_utils::convert(b.start_unix))
+                || (b.end_unix.is_some()
+                    && time_utils::same_day(now_dt, time_utils::convert(b.end_unix.unwrap())))
+                || b.end_unix.is_none()
         })
         .map(|b| {
             let millis;
@@ -61,7 +63,8 @@ pub fn exec(data: &Data) {
         .collect::<Vec<String>>()
         .join("\n");
 
-    println!("Overview:\n\nTime worked: {}\nBreak time: {}\nTotal: {}\n",
+    println!(
+        "Overview:\n\nTime worked: {}\nBreak time: {}\nTotal: {}\n",
         time_utils::prettify_duration(time_worked),
         time_utils::prettify_duration(time_break),
         time_utils::prettify_duration(time_worked + time_break)

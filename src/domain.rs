@@ -1,9 +1,10 @@
-use std::fs::{self, File};
-use std::fmt;
-use std::io::Write;
-use serde::{Serialize, Deserialize};
-use std::time::Duration;
 use crate::utils::time_utils;
+use serde::{Deserialize, Serialize};
+use std::error::Error;
+use std::fmt;
+use std::fs::{self, File};
+use std::io::Write;
+use std::time::Duration;
 
 type Timestamp = u64;
 
@@ -17,7 +18,7 @@ impl Timer {
     pub fn new() -> Self {
         Self {
             start_unix: time_utils::since_unix().as_millis() as u64,
-            end_unix: None
+            end_unix: None,
         }
     }
 
@@ -25,7 +26,7 @@ impl Timer {
         let now: u64 = time_utils::since_unix().as_millis() as u64;
         Self {
             start_unix: now,
-            end_unix: Some(now + duration.as_millis() as u64)
+            end_unix: Some(now + duration.as_millis() as u64),
         }
     }
 
@@ -33,7 +34,7 @@ impl Timer {
     pub fn with_initial_time(start_unix: u64) -> Self {
         Self {
             start_unix,
-            end_unix: None
+            end_unix: None,
         }
     }
 
@@ -55,7 +56,6 @@ impl Timer {
         if let Some(end) = self.end_unix {
             // Time remaining
             to_display = time_utils::since_unix().abs_diff(Duration::from_millis(end));
-            
         } else {
             // Time since start
             to_display = time_utils::since_unix().abs_diff(Duration::from_millis(self.start_unix));
@@ -64,7 +64,7 @@ impl Timer {
         let total_seconds = to_display.as_secs() as u32;
         let hours = total_seconds / 60 / 60;
         let minutes = (total_seconds - hours * 3600) / 60;
-        
+
         (hours, minutes, total_seconds % 60)
     }
 
@@ -94,14 +94,14 @@ pub struct TimeBlock {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Data {
     categories: Vec<String>,
-    pub blocks: Vec<TimeBlock> //TODO: Expose block methods in interface 
+    pub blocks: Vec<TimeBlock>, //TODO: Expose block methods in interface
 }
 
 impl Data {
     pub fn empty() -> Self {
         Self {
             categories: vec![],
-            blocks: vec![]
+            blocks: vec![],
         }
     }
 
@@ -113,24 +113,30 @@ impl Data {
     pub fn save(&self, path: &str) {
         let mut file = File::create(path).expect("File could not be opened");
         let stringified = serde_json::to_string(self).expect("Object could not be serialized");
-        let _ = file.write_all(stringified.as_bytes()).expect("Could not write to file");
+        let _ = file
+            .write_all(stringified.as_bytes())
+            .expect("Could not write to file");
     }
 
     pub fn get_running_timer(&self) -> Option<Timer> {
         self.blocks
             .iter()
-            .filter(|b| { 
+            .filter(|b| {
                 if let Some(end) = b.end_unix {
                     let now = time_utils::since_unix().as_millis() as u64;
                     end > now
+                } else {
+                    true
                 }
-                else { true }
             })
-            .map(|b| { Timer { start_unix: b.start_unix, end_unix: b.end_unix } })
+            .map(|b| Timer {
+                start_unix: b.start_unix,
+                end_unix: b.end_unix,
+            })
             .next()
     }
 }
 
 pub trait Executable {
-    fn execute(&self, data: &mut Data);
+    fn execute(&self, data: &mut Data) -> Result<(), Box<dyn Error>>;
 }
