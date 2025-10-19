@@ -1,6 +1,6 @@
 pub mod parsers {
 
-    use chrono::{DateTime, Local};
+    use chrono::{DateTime, Local, TimeZone, Utc};
     use std::time::Duration;
 
     /// Parse a duration string like "1h35m50s" into `Duration`
@@ -34,7 +34,11 @@ pub mod parsers {
     pub fn parse_timestamp(s: &str) -> Result<DateTime<Local>, String> {
         let humantime_result = humantime::parse_rfc3339_weak(s);
         match humantime_result {
-            Ok(st) => Ok(st.into()),
+            Ok(st) => {
+                let dt: DateTime<Utc> = st.into();
+                let naive_dt = dt.naive_local();
+                Ok(Local.from_local_datetime(&naive_dt).unwrap())
+            }
             Err(e) => Err(e.to_string()),
         }
     }
