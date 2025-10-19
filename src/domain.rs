@@ -85,7 +85,7 @@ impl Timer {
 impl fmt::Display for Timer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (hours, minutes, seconds) = self.get_hours_minutes_seconds();
-        write!(f, "{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds)
+        write!(f, "{hours:0>2}:{minutes:0>2}:{seconds:0>2}")
     }
 }
 

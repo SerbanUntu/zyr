@@ -28,10 +28,10 @@ pub fn exec(data: &Data) {
                 }
             }
 
-            let millis = if !time_utils::same_day(now_dt, start_dt) {
-                time_utils::millis_since_midnight(end_dt)
-            } else {
+            let millis = if time_utils::same_day(now_dt, start_dt) {
                 (end_dt - start_dt).num_milliseconds() as u64
+            } else {
+                time_utils::millis_since_midnight(end_dt)
             };
 
             (Duration::from_millis(millis), &b.category[..])
@@ -70,5 +70,5 @@ pub fn exec(data: &Data) {
         time_utils::prettify_duration(time_worked + time_break)
     );
 
-    println!("Breakdown by category:\n\n{}", breakdown);
+    println!("Breakdown by category:\n\n{breakdown}");
 }

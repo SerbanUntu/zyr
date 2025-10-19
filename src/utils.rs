@@ -49,7 +49,7 @@ pub mod parsers {
 /// Various file system utility functions
 pub mod file_utils {
 
-    use std::fs::{self, *};
+    use std::fs::{self, File};
     use std::path::PathBuf;
 
     use crate::domain::Data;
@@ -63,7 +63,7 @@ pub mod file_utils {
     /// Lin: /home/john/.local/share/zyr/data.json
     /// Win: C:\Users\John\AppData\Roaming\zyr\zyr\data\data.json
     /// Mac: /Users/John/Library/Application Support/org/zyr/zyr/data.json
-    pub fn get_data_path() -> Box<PathBuf> {
+    pub fn get_data_path() -> PathBuf {
         let file_path = directories::ProjectDirs::from("org", "zyr", "zyr")
             .expect("Could not open the project directory")
             .data_dir()
@@ -81,7 +81,7 @@ pub mod file_utils {
             _ => (),
         }
 
-        Box::new(file_path)
+        file_path
     }
 }
 
@@ -110,6 +110,7 @@ pub mod io_utils {
 pub mod time_utils {
 
     use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
+    use std::fmt::Write;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     /// Compute the number of milliseconds between 1 Jan 1970 and
@@ -157,7 +158,7 @@ pub mod time_utils {
 
     /// Formats a `Duration` into a `String` like `14h35m20s`
     pub fn prettify_duration(d: Duration) -> String {
-        let mut result = String::from("");
+        let mut result = String::new();
 
         let total_seconds = d.as_secs() as u32;
         let hours = total_seconds / 60 / 60;
@@ -165,12 +166,12 @@ pub mod time_utils {
         let seconds = total_seconds % 60;
 
         if hours > 0 {
-            result.push_str(&format!("{}h", hours));
+            let _ = write!(result, "{hours}h");
         }
         if hours > 0 || minutes > 0 {
-            result.push_str(&format!("{}m", minutes));
+            let _ = write!(result, "{minutes}m");
         }
-        result.push_str(&format!("{}s", seconds));
+        let _ = write!(result, "{seconds}s");
 
         result
     }

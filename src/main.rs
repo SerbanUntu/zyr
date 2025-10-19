@@ -18,7 +18,7 @@ fn main() {
 
     let result = cli.command.execute(&mut data);
     if let Err(e) = result {
-        eprintln!("Execution failed. {}", e)
+        eprintln!("Execution failed. {e}");
     }
 
     data.save(&data_path);

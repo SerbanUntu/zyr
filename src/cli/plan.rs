@@ -60,7 +60,7 @@ pub enum PlanCommands {
         order_number: Option<u32>,
 
         /// Edit the most recent time block.
-        /// Same as writing the number 0 for ORDER_NUMBER.
+        /// Same as writing the number 0 for `ORDER_NUMBER`.
         #[arg(short, long, action = ArgAction::SetTrue)]
         last: bool,
     },
@@ -71,7 +71,7 @@ pub enum PlanCommands {
         order_number: Option<u32>,
 
         /// Delete the most recent time block.
-        /// Same as writing the number 0 for ORDER_NUMBER.
+        /// Same as writing the number 0 for `ORDER_NUMBER`.
         #[arg(short, long, action = ArgAction::SetTrue)]
         last: bool,
     },
@@ -93,8 +93,16 @@ impl Executable for PlanCommands {
                 to,
                 order_number,
                 last,
-            } => Self::exec_edit(category, *from, *duration, *to, order_number, *last, data)?,
-            Self::Del { order_number, last } => Self::exec_del(order_number, *last, data)?,
+            } => Self::exec_edit(
+                category.as_ref(),
+                *from,
+                *duration,
+                *to,
+                *order_number,
+                *last,
+                data,
+            )?,
+            Self::Del { order_number, last } => Self::exec_del(*order_number, *last, data)?,
         }
         Ok(())
     }
@@ -140,11 +148,11 @@ impl PlanCommands {
     ///
     /// * return - The index in the array of time blocks, or an error
     fn get_index_from_order_number(
-        order_number: &Option<u32>,
+        order_number: Option<u32>,
         last: bool,
         data: &mut Data,
     ) -> Result<usize, Box<dyn Error>> {
-        let computed_order = match (*order_number, last) {
+        let computed_order = match (order_number, last) {
             (None, false) => Self::choose_index(data)?,
             (Some(0) | None, true) => 0,
             (_, true) => {
@@ -157,6 +165,76 @@ impl PlanCommands {
                 "This order number does not exist. The number you selected was {}, which is greater than the total number of blocks, which is {}", 
                 computed_order,
                 data.blocks.len()).into())
+    }
+
+    /// Print `PAGE_SIZE` time blocks in the TUI, corresponding to a certain page number.
+    fn load_page(
+        page: usize,
+        pos: &mut usize,
+        max_pos: &mut usize,
+        total_pages: usize,
+        lines: &[String],
+    ) {
+        let ps = PAGE_SIZE as usize;
+        *max_pos = ps;
+        if page * ps + *max_pos > lines.len() {
+            *max_pos = lines.len() - page * ps;
+        }
+        if *pos > *max_pos {
+            *pos = *max_pos - 1;
+        }
+        execute!(io::stdout(), cursor::MoveTo(0, 0),).unwrap();
+
+        for i in 0..*max_pos {
+            execute!(
+                io::stdout(),
+                cursor::MoveToColumn(0),
+                style::Print(format!("  {:<80}\n", lines[page * ps + i])),
+            )
+            .unwrap();
+        }
+        for _ in *max_pos..=PAGE_SIZE as usize {
+            execute!(
+                io::stdout(),
+                cursor::MoveToColumn(0),
+                style::Print(format!("  {:<80}\n", "")),
+            )
+            .unwrap();
+        }
+        execute!(
+            io::stdout(),
+            cursor::MoveToColumn(0),
+            style::Print(format!(
+                "Page {} of {total_pages}. Navigate with arrows or Vim motions. Enter to submit.",
+                page + 1
+            )),
+        )
+        .unwrap();
+
+        Self::select_line(page, 0, *pos, lines);
+    }
+
+    /// Select a certain time block in the TUI, marked with white text and a leading caret.
+    fn select_line(page: usize, old_pos: usize, new_pos: usize, lines: &[String]) {
+        execute!(
+            io::stdout(),
+            cursor::MoveToRow(old_pos as u16),
+            cursor::MoveToColumn(0),
+            style::SetForegroundColor(Color::Grey),
+            style::Print(format!(
+                "  {}",
+                lines[page * (PAGE_SIZE as usize) + old_pos]
+            )),
+            cursor::MoveToRow(new_pos as u16),
+            cursor::MoveToColumn(0),
+            style::SetForegroundColor(Color::White),
+            style::Print(format!(
+                "> {}",
+                lines[page * (PAGE_SIZE as usize) + new_pos]
+            )),
+            style::ResetColor,
+        )
+        .unwrap();
     }
 
     /// Display the interactive menu for selecting a time block.
@@ -175,7 +253,7 @@ impl PlanCommands {
             .iter()
             .rev()
             .enumerate()
-            .map(|(i, b)| format!("{i}: {}", b))
+            .map(|(i, b)| format!("{i}: {b}"))
             .collect();
         let mut page = 0;
         let mut pos: usize = 0;
@@ -183,77 +261,7 @@ impl PlanCommands {
         // Exclusive
         let mut max_pos: usize = PAGE_SIZE as usize;
 
-        /// Print `PAGE_SIZE` time blocks in the TUI, corresponding to a certain page number.
-        fn load_page(
-            page: usize,
-            pos: &mut usize,
-            max_pos: &mut usize,
-            total_pages: usize,
-            lines: &[String],
-        ) {
-            let ps = PAGE_SIZE as usize;
-            *max_pos = ps;
-            if page * ps + *max_pos > lines.len() {
-                *max_pos = lines.len() - page * ps;
-            }
-            if *pos > *max_pos {
-                *pos = *max_pos - 1;
-            }
-            execute!(io::stdout(), cursor::MoveTo(0, 0),).unwrap();
-
-            for i in 0..*max_pos {
-                execute!(
-                    io::stdout(),
-                    cursor::MoveToColumn(0),
-                    style::Print(format!("  {:<80}\n", lines[page * ps + i])),
-                )
-                .unwrap();
-            }
-            for _ in *max_pos..=PAGE_SIZE as usize {
-                execute!(
-                    io::stdout(),
-                    cursor::MoveToColumn(0),
-                    style::Print(format!("  {:<80}\n", "")),
-                )
-                .unwrap();
-            }
-            execute!(
-                io::stdout(),
-                cursor::MoveToColumn(0),
-                style::Print(format!(
-                    "Page {} of {total_pages}. Navigate with arrows or Vim motions. Enter to submit.",
-                    page + 1
-                )),
-            )
-            .unwrap();
-
-            select_line(page, 0, *pos, lines);
-        }
-
-        /// Select a certain time block in the TUI, marked with white text and a leading caret.
-        fn select_line(page: usize, old_pos: usize, new_pos: usize, lines: &[String]) {
-            execute!(
-                io::stdout(),
-                cursor::MoveToRow(old_pos as u16),
-                cursor::MoveToColumn(0),
-                style::SetForegroundColor(Color::Grey),
-                style::Print(format!(
-                    "  {}",
-                    lines[page * (PAGE_SIZE as usize) + old_pos]
-                )),
-                cursor::MoveToRow(new_pos as u16),
-                cursor::MoveToColumn(0),
-                style::SetForegroundColor(Color::White),
-                style::Print(format!(
-                    "> {}",
-                    lines[page * (PAGE_SIZE as usize) + new_pos]
-                )),
-                style::ResetColor,
-            )
-            .unwrap();
-        }
-
-        load_page(0, &mut pos, &mut max_pos, total_pages, &lines);
+        Self::load_page(0, &mut pos, &mut max_pos, total_pages, &lines);
 
         loop {
             if event::poll(frame_dur)?
@@ -265,13 +273,13 @@ impl PlanCommands {
                     }
                     (KeyCode::Up | KeyCode::Char('k'), _) => {
                         if pos > 0 {
-                            select_line(page, pos, pos - 1, &lines);
+                            Self::select_line(page, pos, pos - 1, &lines);
                             pos -= 1;
                         }
                     }
                     (KeyCode::Down | KeyCode::Char('j'), _) => {
                         if pos < max_pos - 1 {
-                            select_line(page, pos, pos + 1, &lines);
+                            Self::select_line(page, pos, pos + 1, &lines);
                             pos += 1;
                         }
                     }
@@ -280,13 +288,13 @@ impl PlanCommands {
                     }
                     (KeyCode::Left | KeyCode::Char('h'), _) => {
                         if page > 0 {
-                            load_page(page - 1, &mut pos, &mut max_pos, total_pages, &lines);
+                            Self::load_page(page - 1, &mut pos, &mut max_pos, total_pages, &lines);
                             page -= 1;
                         }
                     }
                     (KeyCode::Right | KeyCode::Char('l'), _) => {
                         if page < total_pages - 1 {
-                            load_page(page + 1, &mut pos, &mut max_pos, total_pages, &lines);
+                            Self::load_page(page + 1, &mut pos, &mut max_pos, total_pages, &lines);
                             page += 1;
                         }
                     }
@@ -298,11 +306,11 @@ impl PlanCommands {
 
     /// Implementation of the `zyr plan edit` command
     fn exec_edit(
-        category: &Option<String>,
+        category: Option<&String>,
         from: Option<DateTime<Local>>,
         duration: Option<Duration>,
         to: Option<DateTime<Local>>,
-        order_number: &Option<u32>,
+        order_number: Option<u32>,
         last: bool,
         data: &mut Data,
     ) -> Result<(), Box<dyn Error>> {
@@ -344,7 +352,7 @@ impl PlanCommands {
 
     /// Implementation of the `zyr plan del` command
     fn exec_del(
-        order_number: &Option<u32>,
+        order_number: Option<u32>,
         last: bool,
         data: &mut Data,
     ) -> Result<(), Box<dyn Error>> {

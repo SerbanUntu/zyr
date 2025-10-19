@@ -144,10 +144,6 @@ impl TimerCommands {
     /// Implementation of the `zyr timer show` command
     fn exec_show(data: &Data) -> Result<(), Box<dyn Error>> {
         if let Some(timer) = data.get_running_timer() {
-            let _raw_terminal = RawTerminal::new()?;
-            let mut dur = Duration::ZERO;
-            let frame_dur = Duration::from_millis(FRAME_DURATION_MS);
-
             fn print_timer(timer: &Timer) {
                 execute!(
                     io::stdout(),
@@ -156,6 +152,10 @@ impl TimerCommands {
                 )
                 .unwrap();
             }
+
+            let _raw_terminal = RawTerminal::new()?;
+            let mut dur = Duration::ZERO;
+            let frame_dur = Duration::from_millis(FRAME_DURATION_MS);
 
             print_timer(&timer);
             loop {
