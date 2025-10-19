@@ -59,9 +59,7 @@ impl PlanCommands {
         to: Option<DateTime<Local>>,
         data: &mut Data,
     ) -> Result<(), Box<dyn Error>> {
-        let end_unix: u64;
-
-        match (duration, to) {
+        let end_unix = match (duration, to) {
             (None, None) => {
                 return Err("Either the time block duration or end time must be set!".into());
             }
@@ -70,13 +68,9 @@ impl PlanCommands {
                 "The time block duration and end time cannot both be set at the same time! Please choose only one of them.".into()
             );
             }
-            (Some(d), None) => {
-                end_unix = (from + d).timestamp_millis() as u64;
-            }
-            (None, Some(t)) => {
-                end_unix = t.timestamp_millis() as u64;
-            }
-        }
+            (Some(d), None) => (from + d).timestamp_millis() as u64,
+            (None, Some(t)) => t.timestamp_millis() as u64,
+        };
 
         let tb = TimeBlock {
             start_unix: from.timestamp_millis() as u64,

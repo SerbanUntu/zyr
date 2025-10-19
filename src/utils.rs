@@ -25,7 +25,7 @@ pub mod parsers {
         }
 
         if !num.is_empty() {
-            return Err(format!("Trailing number without unit in {s}").into());
+            return Err(format!("Trailing number without unit in {s}"));
         }
 
         Ok(Duration::from_secs(secs))

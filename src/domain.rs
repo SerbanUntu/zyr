@@ -113,8 +113,7 @@ impl Data {
     pub fn save(&self, path: &str) {
         let mut file = File::create(path).expect("File could not be opened");
         let stringified = serde_json::to_string(self).expect("Object could not be serialized");
-        let _ = file
-            .write_all(stringified.as_bytes())
+        file.write_all(stringified.as_bytes())
             .expect("Could not write to file");
     }
 

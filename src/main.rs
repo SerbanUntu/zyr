@@ -12,11 +12,8 @@ fn main() {
     let mut data = Data::from_file("data.json");
 
     let result = cli.command.execute(&mut data);
-    match result {
-        Err(e) => {
-            eprintln!("Execution failed. {}", e)
-        }
-        _ => (),
+    if let Err(e) = result {
+        eprintln!("Execution failed. {}", e)
     }
 
     data.save("data.json");

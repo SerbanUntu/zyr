@@ -71,7 +71,7 @@ impl TimerCommands {
             timer = Timer::new();
         }
 
-        data.blocks.push(timer.to_block(&category));
+        data.blocks.push(timer.to_block(category));
         data.save("data.json"); //TODO: Move saving logic
 
         if show {

@@ -17,7 +17,6 @@ pub fn exec(data: &Data) {
                 || b.end_unix.is_none()
         })
         .map(|b| {
-            let millis;
             let start_dt = time_utils::convert(b.start_unix);
             let mut end_dt = now_dt;
 
@@ -28,11 +27,11 @@ pub fn exec(data: &Data) {
                 }
             }
 
-            if !time_utils::same_day(now_dt, start_dt) {
-                millis = time_utils::millis_since_midnight(end_dt);
+            let millis = if !time_utils::same_day(now_dt, start_dt) {
+                time_utils::millis_since_midnight(end_dt)
             } else {
-                millis = (end_dt - start_dt).num_milliseconds() as u64;
-            }
+                (end_dt - start_dt).num_milliseconds() as u64
+            };
 
             (Duration::from_millis(millis), &b.category[..])
         })
