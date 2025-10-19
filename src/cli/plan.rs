@@ -115,7 +115,7 @@ impl PlanCommands {
     ) -> Result<usize, Box<dyn Error>> {
         let computed_order = match (*order_number, last) {
             (None, false) => Self::choose_index(data)?,
-            (Some(0), true) | (None, true) => 0,
+            (Some(0) | None, true) => 0,
             (_, true) => {
                 return Err("Mismatched order numbers! Either manually provide the order number or use --last, but not both at the same time.".into());
             }
@@ -184,7 +184,7 @@ impl PlanCommands {
                 io::stdout(),
                 cursor::MoveToColumn(0),
                 style::Print(format!(
-                    "Page {} of {total_pages}. Navigate with arrows. Enter to submit.",
+                    "Page {} of {total_pages}. Navigate with arrows or Vim motions. Enter to submit.",
                     page + 1
                 )),
             )
@@ -225,13 +225,13 @@ impl PlanCommands {
                     (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => {
                         return Err("Interrupt signal".into());
                     }
-                    (KeyCode::Up, _) => {
+                    (KeyCode::Up | KeyCode::Char('k'), _) => {
                         if pos > 0 {
                             select_line(page, pos, pos - 1, &lines);
                             pos -= 1;
                         }
                     }
-                    (KeyCode::Down, _) => {
+                    (KeyCode::Down | KeyCode::Char('j'), _) => {
                         if pos < max_pos - 1 {
                             select_line(page, pos, pos + 1, &lines);
                             pos += 1;
@@ -240,13 +240,13 @@ impl PlanCommands {
                     (KeyCode::Enter, _) => {
                         return Ok((pos + (page * (PAGE_SIZE as usize))) as u32);
                     }
-                    (KeyCode::Left, _) => {
+                    (KeyCode::Left | KeyCode::Char('h'), _) => {
                         if page > 0 {
                             load_page(page - 1, &mut pos, &mut max_pos, total_pages, &lines);
                             page -= 1;
                         }
                     }
-                    (KeyCode::Right, _) => {
+                    (KeyCode::Right | KeyCode::Char('l'), _) => {
                         if page < total_pages - 1 {
                             load_page(page + 1, &mut pos, &mut max_pos, total_pages, &lines);
                             page += 1;
