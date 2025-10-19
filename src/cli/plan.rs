@@ -1,11 +1,18 @@
 use crate::{
     domain::{Data, Executable, TimeBlock},
+    terminal::{FRAME_DURATION_MS, PAGE_SIZE, RawTerminal},
     utils::{io_utils, parsers, time_utils},
 };
 use chrono::{DateTime, Local};
 use clap::{ArgAction, Subcommand};
-use std::error::Error;
+use crossterm::{
+    cursor,
+    event::{self, Event, KeyCode, KeyModifiers},
+    execute,
+    style::{self, Color},
+};
 use std::time::Duration;
+use std::{error::Error, io};
 
 #[derive(Subcommand, PartialEq)]
 pub enum PlanCommands {
@@ -107,7 +114,7 @@ impl PlanCommands {
         data: &mut Data,
     ) -> Result<usize, Box<dyn Error>> {
         let computed_order = match (*order_number, last) {
-            (None, false) => todo!(),
+            (None, false) => Self::choose_index(data)?,
             (Some(0), true) | (None, true) => 0,
             (_, true) => {
                 return Err("Mismatched order numbers! Either manually provide the order number or use --last, but not both at the same time.".into());
@@ -119,6 +126,136 @@ impl PlanCommands {
                 "This order number does not exist. The number you selected was {}, which is greater than the total number of blocks, which is {}", 
                 computed_order,
                 data.blocks.len()).into())
+    }
+
+    fn choose_index(data: &mut Data) -> Result<u32, Box<dyn Error>> {
+        let _raw_terminal = RawTerminal::new()?;
+        let frame_dur = Duration::from_millis(FRAME_DURATION_MS);
+        let total_pages: usize =
+            (f64::from(data.blocks.len() as u32) / f64::from(PAGE_SIZE as u32)).ceil() as usize;
+
+        let lines: Vec<String> = data
+            .blocks
+            .iter()
+            .rev()
+            .enumerate()
+            .map(|(i, b)| format!("{i}: {}", b))
+            .collect();
+        let mut page = 0;
+        let mut pos: usize = 0;
+
+        // Exclusive
+        let mut max_pos: usize = PAGE_SIZE as usize;
+
+        fn load_page(
+            page: usize,
+            pos: &mut usize,
+            max_pos: &mut usize,
+            total_pages: usize,
+            lines: &[String],
+        ) {
+            let ps = PAGE_SIZE as usize;
+            *max_pos = ps;
+            if page * ps + *max_pos > lines.len() {
+                *max_pos = lines.len() - page * ps;
+            }
+            if *pos > *max_pos {
+                *pos = *max_pos - 1;
+            }
+            execute!(io::stdout(), cursor::MoveTo(0, 0),).unwrap();
+
+            for i in 0..*max_pos {
+                execute!(
+                    io::stdout(),
+                    cursor::MoveToColumn(0),
+                    style::Print(format!("  {:<80}\n", lines[page * ps + i])),
+                )
+                .unwrap();
+            }
+            for _ in *max_pos..=PAGE_SIZE as usize {
+                execute!(
+                    io::stdout(),
+                    cursor::MoveToColumn(0),
+                    style::Print(format!("  {:<80}\n", "")),
+                )
+                .unwrap();
+            }
+            execute!(
+                io::stdout(),
+                cursor::MoveToColumn(0),
+                style::Print(format!(
+                    "Page {} of {total_pages}. Navigate with arrows. Enter to submit.",
+                    page + 1
+                )),
+            )
+            .unwrap();
+
+            select_line(page, 0, *pos, lines);
+        }
+
+        fn select_line(page: usize, old_pos: usize, new_pos: usize, lines: &[String]) {
+            execute!(
+                io::stdout(),
+                cursor::MoveToRow(old_pos as u16),
+                cursor::MoveToColumn(0),
+                style::SetForegroundColor(Color::Grey),
+                style::Print(format!(
+                    "  {}",
+                    lines[page * (PAGE_SIZE as usize) + old_pos]
+                )),
+                cursor::MoveToRow(new_pos as u16),
+                cursor::MoveToColumn(0),
+                style::SetForegroundColor(Color::White),
+                style::Print(format!(
+                    "> {}",
+                    lines[page * (PAGE_SIZE as usize) + new_pos]
+                )),
+                style::ResetColor,
+            )
+            .unwrap();
+        }
+
+        load_page(0, &mut pos, &mut max_pos, total_pages, &lines);
+
+        loop {
+            if event::poll(frame_dur)?
+                && let Event::Key(e) = event::read()?
+            {
+                match (e.code, e.modifiers) {
+                    (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => {
+                        return Err("Interrupt signal".into());
+                    }
+                    (KeyCode::Up, _) => {
+                        if pos > 0 {
+                            select_line(page, pos, pos - 1, &lines);
+                            pos -= 1;
+                        }
+                    }
+                    (KeyCode::Down, _) => {
+                        if pos < max_pos - 1 {
+                            select_line(page, pos, pos + 1, &lines);
+                            pos += 1;
+                        }
+                    }
+                    (KeyCode::Enter, _) => {
+                        return Ok((pos + (page * (PAGE_SIZE as usize))) as u32);
+                    }
+                    (KeyCode::Left, _) => {
+                        if page > 0 {
+                            load_page(page - 1, &mut pos, &mut max_pos, total_pages, &lines);
+                            page -= 1;
+                        }
+                    }
+                    (KeyCode::Right, _) => {
+                        if page < total_pages - 1 {
+                            load_page(page + 1, &mut pos, &mut max_pos, total_pages, &lines);
+                            page += 1;
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        }
     }
 
     fn exec_edit(

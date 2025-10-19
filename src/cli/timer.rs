@@ -1,11 +1,16 @@
 use crate::{
     domain::{Data, Executable, Timer},
+    terminal::{FRAME_DURATION_MS, RawTerminal},
     utils::parsers,
 };
 use clap::{ArgAction, Subcommand};
+use crossterm::{
+    cursor,
+    event::{self, Event, KeyCode, KeyModifiers},
+    execute, style,
+};
 use std::error::Error;
-use std::io::{self, Write};
-use std::thread;
+use std::io;
 use std::time::Duration;
 
 #[derive(Subcommand, PartialEq)]
@@ -45,7 +50,7 @@ impl Executable for TimerCommands {
                 Self::exec_end(data);
             }
             Self::Show => {
-                Self::exec_show(data);
+                Self::exec_show(data)?;
             }
         }
         Ok(())
@@ -75,7 +80,7 @@ impl TimerCommands {
         data.save("data.json"); //TODO: Move saving logic
 
         if show {
-            Self::exec_show(data);
+            Self::exec_show(data)?;
         }
         Ok(())
     }
@@ -122,15 +127,40 @@ impl TimerCommands {
         }
     }
 
-    fn exec_show(data: &Data) {
+    fn exec_show(data: &Data) -> Result<(), Box<dyn Error>> {
         if let Some(timer) = data.get_running_timer() {
+            let _raw_terminal = RawTerminal::new()?;
+            let mut dur = Duration::ZERO;
+            let frame_dur = Duration::from_millis(FRAME_DURATION_MS);
+
+            fn print_timer(timer: &Timer) {
+                execute!(
+                    io::stdout(),
+                    cursor::MoveToColumn(0),
+                    style::Print(format!("{timer}"))
+                )
+                .unwrap();
+            }
+
+            print_timer(&timer);
             loop {
-                print!("\x1b[2K\r{}", timer);
-                io::stdout().flush().unwrap();
-                thread::sleep(Duration::from_secs(1))
+                if event::poll(frame_dur)?
+                    && let Event::Key(e) = event::read()?
+                    && e.code == KeyCode::Char('c')
+                    && e.modifiers.contains(KeyModifiers::CONTROL)
+                {
+                    break;
+                }
+                dur += frame_dur;
+                if dur >= Duration::from_secs(1) {
+                    print_timer(&timer);
+                    dur = Duration::ZERO;
+                }
             }
         } else {
             println!("No timer is running");
         }
+
+        Ok(())
     }
 }

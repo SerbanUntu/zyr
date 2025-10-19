@@ -91,6 +91,23 @@ pub struct TimeBlock {
     pub category: String,
 }
 
+impl fmt::Display for TimeBlock {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let start_dt = time_utils::convert(self.start_unix);
+        let end_str = match self.end_unix {
+            Some(e) => time_utils::convert(e).to_rfc2822(),
+            None => "Ongoing".to_string(),
+        };
+        write!(
+            f,
+            "{}: {}, {}",
+            self.category,
+            start_dt.to_rfc2822(),
+            end_str
+        )
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Data {
     categories: Vec<String>,
