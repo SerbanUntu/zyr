@@ -40,6 +40,21 @@ pub mod parsers {
     }
 }
 
+pub mod io_utils {
+
+    use std::io;
+
+    pub fn confirm(msg: &str) -> bool {
+        println!("Are you sure you want to {msg}? (y/N)");
+        let mut buf = String::new();
+        io::stdin()
+            .read_line(&mut buf)
+            .expect("Did not enter a correct string");
+
+        buf.chars().next().is_some_and(|ch| ch == 'y')
+    }
+}
+
 pub mod time_utils {
 
     use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};

@@ -1,14 +1,7 @@
-use crate::domain::Data;
-use std::io;
+use crate::{domain::Data, utils::io_utils};
 
 pub fn exec(data: &mut Data) {
-    println!("Are you sure you want to clear all data? (y/N)");
-    let mut buf = String::new();
-    io::stdin()
-        .read_line(&mut buf)
-        .expect("Did not enter a correct string");
-
-    if buf.chars().next().is_some_and(|ch| ch == 'y') {
+    if io_utils::confirm("delete all data") {
         *data = Data::empty();
         println!("All data has been deleted");
     } else {
