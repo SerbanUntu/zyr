@@ -267,6 +267,9 @@ impl PlanCommands {
         last: bool,
         data: &mut Data,
     ) -> Result<(), Box<dyn Error>> {
+        if data.blocks.is_empty() {
+            return Err("You do not have any time blocks stored. Create one with `zyr plan add` or `zyr timer start`".into());
+        }
         if category.is_none() && from.is_none() && duration.is_none() && to.is_none() {
             return Err("No modifications were provided. Try running zyr plan edit --help to see the intended usage.".into());
         }
@@ -305,6 +308,10 @@ impl PlanCommands {
         last: bool,
         data: &mut Data,
     ) -> Result<(), Box<dyn Error>> {
+        if data.blocks.is_empty() {
+            return Err("You do not have any time blocks stored. Create one with `zyr plan add` or `zyr timer start`".into());
+        }
+
         let index = Self::get_index_from_order_number(order_number, last, data)?;
         if io_utils::confirm("delete this time block") {
             data.blocks.remove(index);

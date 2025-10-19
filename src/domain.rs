@@ -4,6 +4,7 @@ use std::error::Error;
 use std::fmt;
 use std::fs::{self, File};
 use std::io::Write;
+use std::path::Path;
 use std::time::Duration;
 
 type Timestamp = u64;
@@ -122,12 +123,19 @@ impl Data {
         }
     }
 
-    pub fn from_file(path: &str) -> Self {
+    pub fn new() -> Self {
+        Self {
+            categories: vec![String::from("break")],
+            blocks: vec![],
+        }
+    }
+
+    pub fn from_file(path: &Path) -> Self {
         let json_str = fs::read_to_string(path).expect("File could not be read");
         serde_json::from_str(&json_str).expect("JSON could not be parsed")
     }
 
-    pub fn save(&self, path: &str) {
+    pub fn save(&self, path: &Path) {
         let mut file = File::create(path).expect("File could not be opened");
         let stringified = serde_json::to_string(self).expect("Object could not be serialized");
         file.write_all(stringified.as_bytes())

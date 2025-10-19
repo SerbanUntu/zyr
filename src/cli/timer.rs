@@ -1,7 +1,7 @@
 use crate::{
     domain::{Data, Executable, Timer},
     terminal::{FRAME_DURATION_MS, RawTerminal},
-    utils::parsers,
+    utils::{file_utils, parsers},
 };
 use clap::{ArgAction, Subcommand};
 use crossterm::{
@@ -77,7 +77,7 @@ impl TimerCommands {
         }
 
         data.blocks.push(timer.to_block(category));
-        data.save("data.json"); //TODO: Move saving logic
+        data.save(&file_utils::get_data_path());
 
         if show {
             Self::exec_show(data)?;

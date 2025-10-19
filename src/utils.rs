@@ -40,6 +40,35 @@ pub mod parsers {
     }
 }
 
+pub mod file_utils {
+
+    use std::fs::{self, *};
+    use std::path::PathBuf;
+
+    use crate::domain::Data;
+
+    pub fn get_data_path() -> Box<PathBuf> {
+        let file_path = directories::ProjectDirs::from("org", "zyr", "zyr")
+            .expect("Could not open the project directory")
+            .data_dir()
+            .join("data.json");
+
+        match file_path.try_exists() {
+            Err(_) | Ok(false) => {
+                if let Some(parent) = file_path.parent() {
+                    fs::create_dir_all(parent).expect("Could not create project directory");
+                }
+
+                let _ = File::create(&file_path);
+                Data::new().save(&file_path);
+            }
+            _ => (),
+        }
+
+        Box::new(file_path)
+    }
+}
+
 pub mod io_utils {
 
     use std::io;
