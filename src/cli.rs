@@ -20,15 +20,19 @@ pub struct Cli {
 
 #[derive(Subcommand, PartialEq)]
 pub enum Commands {
+    /// Start a timer to track your work
     Timer {
         #[command(subcommand)]
         command: TimerCommands,
     },
+    /// Manually create, delete, or modify time blocks
     Plan {
         #[command(subcommand)]
         command: PlanCommands,
     },
+    /// Reset all data stored on this device
     Clear,
+    /// View statistics about what you worked on today
     View,
 }
 

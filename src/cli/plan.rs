@@ -16,39 +16,62 @@ use std::{error::Error, io};
 
 #[derive(Subcommand, PartialEq)]
 pub enum PlanCommands {
+    /// Manually create a new time block with a start and end time
     Add {
+        /// The type of work or activity. E.g., code, study, break
         category: String,
 
+        /// The start time of the block, e.g., 2010-12-31T10:00:00
         #[arg(short, long, value_parser = parsers::parse_timestamp)]
         from: DateTime<Local>,
 
+        /// The duration of the block, e.g., 1h10m20s.
+        /// Either specify a duration or an end time.
         #[arg(short, long, value_parser = parsers::parse_duration)]
         duration: Option<Duration>,
 
+        /// The end time of the block, e.g., 2010-12-31T10:00:00.
+        /// Either specify a duration or an end time.
         #[arg(short, long, value_parser = parsers::parse_timestamp)]
         to: Option<DateTime<Local>>,
     },
+    /// Modify a pre-existing time block
     Edit {
+        /// The updated category. E.g., code, study, break
         #[arg(short, long)]
         category: Option<String>,
 
+        /// The updated start time of the block, e.g., 2010-12-31T10:00:00
         #[arg(short, long, value_parser = parsers::parse_timestamp)]
         from: Option<DateTime<Local>>,
 
+        /// The updated duration of the block, e.g., 1h10m20s.
+        /// Either specify a duration or an end time.
         #[arg(short, long, value_parser = parsers::parse_duration)]
         duration: Option<Duration>,
 
+        /// The updated end time of the block, e.g., 2010-12-31T10:00:00.
+        /// Either specify a duration or an end time.
         #[arg(short, long, value_parser = parsers::parse_timestamp)]
         to: Option<DateTime<Local>>,
 
+        /// 0 for most recent, 1 for second most recent, etc.
+        /// Omitting this number opens interactive mode.
         order_number: Option<u32>,
 
+        /// Edit the most recent time block.
+        /// Same as writing the number 0 for ORDER_NUMBER.
         #[arg(short, long, action = ArgAction::SetTrue)]
         last: bool,
     },
+    /// Delete a time block
     Del {
+        /// 0 for most recent, 1 for second most recent, etc.
+        /// Omitting this number opens interactive mode.
         order_number: Option<u32>,
 
+        /// Delete the most recent time block.
+        /// Same as writing the number 0 for ORDER_NUMBER.
         #[arg(short, long, action = ArgAction::SetTrue)]
         last: bool,
     },
@@ -78,6 +101,7 @@ impl Executable for PlanCommands {
 }
 
 impl PlanCommands {
+    /// Implementation of the `zyr plan add` command
     fn exec_add(
         category: &str,
         from: DateTime<Local>,
@@ -108,6 +132,13 @@ impl PlanCommands {
         Ok(())
     }
 
+    /// Calculate the time block index given the CLI arguments.
+    ///
+    /// * `order_number` - The order number provided by the user
+    /// * `last`         - Whether the user used the --last flag
+    /// * `data`         - The user's data
+    ///
+    /// * return - The index in the array of time blocks, or an error
     fn get_index_from_order_number(
         order_number: &Option<u32>,
         last: bool,
@@ -128,6 +159,11 @@ impl PlanCommands {
                 data.blocks.len()).into())
     }
 
+    /// Display the interactive menu for selecting a time block.
+    ///
+    /// * `data` - The user's data
+    ///
+    /// * return - The index in the array of time blocks, or an error
     fn choose_index(data: &mut Data) -> Result<u32, Box<dyn Error>> {
         let _raw_terminal = RawTerminal::new()?;
         let frame_dur = Duration::from_millis(FRAME_DURATION_MS);
@@ -147,6 +183,7 @@ impl PlanCommands {
         // Exclusive
         let mut max_pos: usize = PAGE_SIZE as usize;
 
+        /// Print `PAGE_SIZE` time blocks in the TUI, corresponding to a certain page number.
         fn load_page(
             page: usize,
             pos: &mut usize,
@@ -193,6 +230,7 @@ impl PlanCommands {
             select_line(page, 0, *pos, lines);
         }
 
+        /// Select a certain time block in the TUI, marked with white text and a leading caret.
         fn select_line(page: usize, old_pos: usize, new_pos: usize, lines: &[String]) {
             execute!(
                 io::stdout(),
@@ -258,6 +296,7 @@ impl PlanCommands {
         }
     }
 
+    /// Implementation of the `zyr plan edit` command
     fn exec_edit(
         category: &Option<String>,
         from: Option<DateTime<Local>>,
@@ -303,6 +342,7 @@ impl PlanCommands {
         Ok(())
     }
 
+    /// Implementation of the `zyr plan del` command
     fn exec_del(
         order_number: &Option<u32>,
         last: bool,

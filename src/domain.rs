@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
+/// Type alias for a Unix timestamp
 type Timestamp = u64;
 
 #[derive(Debug)]
@@ -15,6 +16,9 @@ pub struct Timer {
     pub end_unix: Option<Timestamp>,
 }
 
+/// A timer that measures time passed since a starting point.
+///
+/// Represents the currently running `TimeBlock`.
 impl Timer {
     pub fn new() -> Self {
         Self {
@@ -85,6 +89,7 @@ impl fmt::Display for Timer {
     }
 }
 
+/// A block of work with a start and end time.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TimeBlock {
     pub start_unix: u64,
@@ -109,12 +114,14 @@ impl fmt::Display for TimeBlock {
     }
 }
 
+/// A struct containing all user data that `zyr` persists on the user's device.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Data {
     categories: Vec<String>,
     pub blocks: Vec<TimeBlock>, //TODO: Expose block methods in interface
 }
 
+/// A representation of the user data stored on disk by the program.
 impl Data {
     pub fn empty() -> Self {
         Self {
@@ -161,6 +168,8 @@ impl Data {
     }
 }
 
+/// A CLI command that uses the user's data
 pub trait Executable {
+    /// Run the CLI command
     fn execute(&self, data: &mut Data) -> Result<(), Box<dyn Error>>;
 }

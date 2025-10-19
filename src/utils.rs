@@ -1,3 +1,4 @@
+/// Custom parsers for command line arguments
 pub mod parsers {
 
     use chrono::{DateTime, Local, TimeZone, Utc};
@@ -31,6 +32,7 @@ pub mod parsers {
         Ok(Duration::from_secs(secs))
     }
 
+    /// Parse an RFC 3339 timestamp like "2010-12-31T20:00:00" into `DateTime<Local>`
     pub fn parse_timestamp(s: &str) -> Result<DateTime<Local>, String> {
         let humantime_result = humantime::parse_rfc3339_weak(s);
         match humantime_result {
@@ -44,6 +46,7 @@ pub mod parsers {
     }
 }
 
+/// Various file system utility functions
 pub mod file_utils {
 
     use std::fs::{self, *};
@@ -51,6 +54,15 @@ pub mod file_utils {
 
     use crate::domain::Data;
 
+    /// Return a pointer to the `PathBuf` where the user data is stored.
+    ///
+    /// Create the file and writes a base `Data` JSON object to it if it does not exist.
+    ///
+    /// # Example paths
+    ///
+    /// Lin: /home/john/.local/share/zyr/data.json
+    /// Win: C:\Users\John\AppData\Roaming\zyr\zyr\data\data.json
+    /// Mac: /Users/John/Library/Application Support/org/zyr/zyr/data.json
     pub fn get_data_path() -> Box<PathBuf> {
         let file_path = directories::ProjectDirs::from("org", "zyr", "zyr")
             .expect("Could not open the project directory")
@@ -73,10 +85,16 @@ pub mod file_utils {
     }
 }
 
+/// Various input/output utility functions
 pub mod io_utils {
 
     use std::io;
 
+    /// Ask the user if they want to perform an action provided via `msg`.
+    ///
+    /// * `msg` - Will ask the user: "Are you sure you want to {msg}?"
+    ///
+    /// * return - True if the user types "y", else false
     pub fn confirm(msg: &str) -> bool {
         println!("Are you sure you want to {msg}? (y/N)");
         let mut buf = String::new();
@@ -88,19 +106,37 @@ pub mod io_utils {
     }
 }
 
+/// Various utility functions for dealing with durations and timestamps
 pub mod time_utils {
 
     use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+    /// Compute the number of milliseconds between 1 Jan 1970 and
+    /// the moment when the function is called.
+    ///
+    /// * return - The number of milliseconds since the Unix epoch.
     pub fn since_unix() -> Duration {
         SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
     }
 
+    /// Check if two dates are on the same day
+    ///
+    /// * `a` - The first day
+    /// * `b` - The second day
+    ///
+    /// * return - True if the dates are on the same day, else false
     pub fn same_day(a: DateTime<Local>, b: DateTime<Local>) -> bool {
         a.year() == b.year() && a.month() == b.month() && a.day() == b.day()
     }
 
+    /// Convert a number of milliseconds since the Unix epoch
+    /// to `chrono::DateTime<Local>`
+    ///
+    /// * `millis` - The number of milliseconds since 1 Jan 1970
+    ///
+    /// * return - The `chrono::DateTime<Local>` corresponding to the provided number of
+    ///   milliseconds
     pub fn convert(millis: u64) -> DateTime<Local> {
         let utc = Utc
             .timestamp_millis_opt(millis as i64)
@@ -109,10 +145,17 @@ pub mod time_utils {
         utc.with_timezone(&Local)
     }
 
+    /// Calculate the number of milliseconds passed for a local date since midnight on the same
+    /// day.
+    ///
+    /// * `dt` - The date for which to calculate the number of milliseconds
+    ///
+    /// * return - The number of milliseconds passed for a local date since the last midnight
     pub fn millis_since_midnight(dt: DateTime<Local>) -> u64 {
         (dt.hour() * 3_600_000 + dt.minute() * 60_000 + dt.second() * 1_000) as u64
     }
 
+    /// Formats a `Duration` into a `String` like `14h35m20s`
     pub fn prettify_duration(d: Duration) -> String {
         let mut result = String::from("");
 

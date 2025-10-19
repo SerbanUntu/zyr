@@ -15,24 +15,34 @@ use std::time::Duration;
 
 #[derive(Subcommand, PartialEq)]
 pub enum TimerCommands {
+    /// Start a new timer
     Start {
+        /// The type of work or activity. E.g., code, study, break
         category: String,
 
+        /// Optional duration of the timer. If provided, the timer will count backwards.
         #[arg(short, long, value_parser = parsers::parse_duration)]
         duration: Option<Duration>,
 
+        /// Run the `zyr timer show` command immediately after
         #[arg(short, long, action = ArgAction::SetTrue)]
         show: bool,
     },
+    /// Make the timer end later. E.g., zyr timer add 5m
     Add {
+        /// The amount of time to delay the timer for. E.g., 5m
         #[arg(value_parser = parsers::parse_duration)]
         duration: Duration,
     },
+    /// Make the timer end earlier. E.g., zyr timer sub 5m
     Sub {
+        /// The amount of time to subtract from the timer. E.g., 5m
         #[arg(value_parser = parsers::parse_duration)]
         duration: Duration,
     },
+    /// Stop the currently running timer
     End,
+    /// Show the currently running timer
     Show,
 }
 
@@ -58,6 +68,7 @@ impl Executable for TimerCommands {
 }
 
 impl TimerCommands {
+    /// Implementation of the `zyr timer start` command
     fn exec_start(
         category: &str,
         duration: Option<Duration>,
@@ -85,6 +96,7 @@ impl TimerCommands {
         Ok(())
     }
 
+    /// Implementation of the `zyr timer add` command
     fn exec_add(duration: Duration, data: &mut Data) -> Result<(), Box<dyn Error>> {
         if let Some(mut timer) = data.get_running_timer() {
             if timer.end_unix.is_none() {
@@ -100,6 +112,7 @@ impl TimerCommands {
         Ok(())
     }
 
+    /// Implementation of the `zyr timer sub` command
     fn exec_sub(duration: Duration, data: &mut Data) -> Result<(), Box<dyn Error>> {
         if let Some(mut timer) = data.get_running_timer() {
             if timer.end_unix.is_none() {
@@ -115,6 +128,7 @@ impl TimerCommands {
         Ok(())
     }
 
+    /// Implementation of the `zyr timer end` command
     fn exec_end(data: &mut Data) {
         if let Some(mut timer) = data.get_running_timer() {
             timer.end();
@@ -127,6 +141,7 @@ impl TimerCommands {
         }
     }
 
+    /// Implementation of the `zyr timer show` command
     fn exec_show(data: &Data) -> Result<(), Box<dyn Error>> {
         if let Some(timer) = data.get_running_timer() {
             let _raw_terminal = RawTerminal::new()?;

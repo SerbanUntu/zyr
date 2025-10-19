@@ -10,6 +10,7 @@ use domain::Executable;
 
 use crate::utils::file_utils;
 
+/// The starting point of the program
 fn main() {
     let data_path = file_utils::get_data_path();
     let mut data = Data::from_file(&data_path);

@@ -4,6 +4,7 @@ use chrono::Local;
 use std::collections::HashMap;
 use std::time::Duration;
 
+/// Implementation of the `zyr view` command
 pub fn exec(data: &Data) {
     let now_dt = Local::now();
 
