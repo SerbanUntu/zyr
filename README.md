@@ -36,7 +36,7 @@ zyr timer start study --duration 2h30m
 zyr timer start break --show
 ```
 
-<!-- Add video here -->
+![Running zyr timer start](./assets/zyr_timer_start.mp4)
 
 #### Manage Running Timers
 ```bash
@@ -52,8 +52,6 @@ zyr timer end
 # Display the current timer status
 zyr timer show
 ```
-
-<!-- Add video here -->
 
 The `timer show` command provides a live display that updates every second. Press Ctrl+C to exit the display.
 
@@ -95,7 +93,7 @@ zyr plan del 3
 zyr plan del
 ```
 
-<!-- Add video here -->
+![Running zyr plan del](./assets/zyr_plan_del.mp4)
 
 ### View Commands
 
@@ -104,6 +102,8 @@ zyr plan del
 # View today's work summary
 zyr view
 ```
+
+![Running zyr view](./assets/zyr_view.mp4)
 
 The view command displays:
 - Total time worked (excluding breaks)
