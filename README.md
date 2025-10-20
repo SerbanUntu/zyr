@@ -36,7 +36,7 @@ zyr timer start study --duration 2h30m
 zyr timer start break --show
 ```
 
-![Running zyr timer start](./assets/zyr_timer_start.mp4)
+![Running zyr timer start](./assets/zyr_timer_start.gif)
 
 #### Manage Running Timers
 ```bash
@@ -93,7 +93,7 @@ zyr plan del 3
 zyr plan del
 ```
 
-![Running zyr plan del](./assets/zyr_plan_del.mp4)
+![Running zyr plan del](./assets/zyr_plan_del.gif)
 
 ### View Commands
 
@@ -103,7 +103,7 @@ zyr plan del
 zyr view
 ```
 
-![Running zyr view](./assets/zyr_view.mp4)
+![Running zyr view](./assets/zyr_view.gif)
 
 The view command displays:
 - Total time worked (excluding breaks)
